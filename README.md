@@ -148,6 +148,7 @@
 - 서울 주요 풋살장 10곳 시범 서비스
 - 피드백 기반 지속적 개선
 
+## 시스템 파이프라인
 ```mermaid
 flowchart TD
     %% 메인 섹션
@@ -203,15 +204,15 @@ flowchart TD
     %% 피드백 루프
     US --> |사용자 피드백|AIP
     
-    %% 스타일링
-    classDef camera fill:#f9d5e5,stroke:#333,stroke-width:1px
-    classDef edge fill:#eeeeee,stroke:#333,stroke-width:1px
-    classDef cloud fill:#e3f2fd,stroke:#333,stroke-width:1px
-    classDef ai fill:#d1c4e9,stroke:#333,stroke-width:1px
-    classDef storage fill:#c8e6c9,stroke:#333,stroke-width:1px
-    classDef content fill:#fff9c4,stroke:#333,stroke-width:1px
-    classDef app fill:#ffcc80,stroke:#333,stroke-width:1px
-    classDef delivery fill:#ffecb3,stroke:#333,stroke-width:1px
+    %% 스타일링 (Material Design 기반 색상으로 수정)
+    classDef camera fill:#FFCDD2,stroke:#333,stroke-width:1px
+    classDef edge fill:#F5F5F5,stroke:#333,stroke-width:1px
+    classDef cloud fill:#BBDEFB,stroke:#333,stroke-width:1px
+    classDef ai fill:#E1BEE7,stroke:#333,stroke-width:1px
+    classDef storage fill:#C8E6C9,stroke:#333,stroke-width:1px
+    classDef content fill:#FFF9C4,stroke:#333,stroke-width:1px
+    classDef app fill:#FFE082,stroke:#333,stroke-width:1px
+    classDef delivery fill:#FFCC80,stroke:#333,stroke-width:1px
     
     class VC,GP camera
     class ES,LS edge
@@ -220,4 +221,21 @@ flowchart TD
     class S3R,S3C,DB storage
     class MC content
     class AP,PH,TA,MD app
-    class SM,HP,PT delivery```
+    class SM,HP,PT delivery
+```
+##시스템 상세 파이프라인
+'''mermaid
+
+'''
+
+##시스템 핵심 프로세스 플로우
+'''mermaid
+
+'''
+
+## 기술 상세 플로우
+
+'''mermaid
+
+'''
+
