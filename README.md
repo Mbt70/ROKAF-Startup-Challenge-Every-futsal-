@@ -148,7 +148,7 @@
 - 서울 주요 풋살장 10곳 시범 서비스
 - 피드백 기반 지속적 개선
 
-##시스템 파이프라인
+## 시스템 파이프라인
 ```mermaid
 flowchart TD
     %% 메인 섹션
@@ -226,7 +226,7 @@ flowchart TD
 
 
 
-##시스템 상세 파이프라인
+## 시스템 상세 파이프라인
 
 ```mermaid
 flowchart TD
@@ -383,7 +383,7 @@ flowchart TD
 
 
 
-##시스템 핵심 프로세스 플로우
+## 시스템 핵심 프로세스 플로우
 
 ```mermaid
 flowchart LR
@@ -428,7 +428,7 @@ flowchart LR
     class G1,G2,H delivery
 ```
 
-##기술 상세 플로우
+## 기술 상세 플로우
 
 ```mermaid
 flowchart TD
