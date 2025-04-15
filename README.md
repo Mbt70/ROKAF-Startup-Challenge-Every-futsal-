@@ -225,10 +225,9 @@ flowchart TD
 ```
 ##시스템 상세 파이프라인
 
-'''mermaid
+```mermaid
 flowchart TD
     %% 메인 섹션 - 데이터 수집
-    
     subgraph CAPTURE["1️⃣ 경기 데이터 수집"]
         direction TB
         V[Veo Cam 3<br>180° 메인 카메라] --> |자동 트래킹| EDGE
@@ -377,10 +376,10 @@ flowchart TD
     class APIG,APPS,CDN api;
     class APP,PHD,TD,GD app;
     class SOCIAL,IMPROVE,LEAGUE,ARCHIVE user;
-'''
+```
 
 ##시스템 핵심 프로세스 플로우
-'''mermaid
+```mermaid
 flowchart LR
     
     %% Main flow
@@ -421,11 +420,11 @@ flowchart LR
     class E1,E2,E3 aiAnalysis
     class F1,F2 output
     class G1,G2,H delivery
-'''
+```
 
 ## 기술 상세 플로우
 
-'''mermaid
+```mermaid
 flowchart TD
     
     %% Input data
@@ -503,5 +502,5 @@ flowchart TD
     class MovementA,ActionMetrics,PositionA,PlayerMetrics,TeamMetrics,IndividualStats,TeamStats metrics
     class ClipGen,IndHighlights,TeamHighlights,FullHighlights,DataViz,Dashboard content
     class DeliverySystem delivery
-'''
+```
 
