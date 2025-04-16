@@ -430,75 +430,73 @@ flowchart LR
 
 ## 기술 상세 플로우
 
-```mermaid
-flowchart TD
-    
-    %% Input data
+```mermaidflowchart TD
+    %% Input Data
     Video[풋살 경기 영상<br>Veo + GoPro] --> PreProc[영상 전처리<br>프레임 추출 & 동기화]
-    
+
     %% Computer Vision Pipeline
     PreProc --> Detection[객체 감지<br>YOLOv8]
     Detection --> Tracking[객체 추적<br>ByteTrack]
     Tracking --> Mapping[공간 매핑<br>호모그래피 변환]
-    
+
     %% Action Recognition
     subgraph ActionRecog["행동 인식 파이프라인"]
         CNN["3D CNN (I3D)<br>시공간적 특징 추출"] --> BiLSTM["Bi-directional LSTM<br>시간적 컨텍스트 모델링"]
         BiLSTM --> ActionClass["행동 분류기<br>패스/슛/태클/드리블 등 분류"]
     end
-    
+
     %% Event Detection
     subgraph EventDetect["이벤트 감지 시스템"]
         Multi["멀티모달 분석기<br>영상 + 오디오"] --> EventClass["이벤트 분류기<br>골/위험찬스/좋은플레이"]
         EventClass --> Scoring["중요도 점수화<br>알고리즘"]
         Scoring --> Threshold["임계값 필터링<br>(6점 이상 선정)"]
     end
-    
+
     %% Metrics Calculation
     subgraph MetricsCalc["지표 계산 시스템"]
         MovementA["움직임 분석<br>거리/속도/가속도"] --> PlayerMetrics["개인 지표 계산"]
         ActionMetrics["기술 지표 분석<br>패스/슛/수비 성공률"] --> PlayerMetrics
         PositionA["포지셔닝 분석<br>히트맵/점유공간"] --> PlayerMetrics
-        
+
         PlayerMetrics --> IndividualStats["개인 성과 지표"]
         PlayerMetrics --> TeamMetrics["팀 지표 집계"]
         TeamMetrics --> TeamStats["팀 성과 지표"]
     end
-    
+
     %% Content Generation
     subgraph ContentGen["콘텐츠 생성 시스템"]
         Threshold --> ClipGen["클립 생성기<br>전후 컨텍스트 포함"]
         ClipGen --> IndHighlights["개인별 하이라이트"]
         ClipGen --> TeamHighlights["팀 하이라이트"]
         ClipGen --> FullHighlights["전체 경기 하이라이트"]
-        
+
         IndividualStats --> DataViz["데이터 시각화"]
         TeamStats --> DataViz
         DataViz --> Dashboard["성과 대시보드"]
     end
-    
+
     %% Pipeline Connections
     Mapping --> ActionRecog
     Mapping --> MetricsCalc
     Tracking --> EventDetect
     ActionClass --> EventClass
     ActionClass --> ActionMetrics
-    
+
     %% Output and Delivery
     IndHighlights --> DeliverySystem["콘텐츠 전달 시스템<br>CDN & 모바일 앱"]
     TeamHighlights --> DeliverySystem
     FullHighlights --> DeliverySystem
     Dashboard --> DeliverySystem
-    
+
     %% Styling
-    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,font-size:14px
-    classDef preproc fill:#bbdefb,stroke:#1976d2,stroke-width:2px,font-size:14px
-    classDef vision fill:#90caf9,stroke:#1e88e5,stroke-width:2px,font-size:14px
-    classDef action fill:#c8e6c9,stroke:#43a047,stroke-width:2px,font-size:14px
-    classDef event fill:#a5d6a7,stroke:#388e3c,stroke-width:2px,font-size:14px
-    classDef metrics fill:#dcedc8,stroke:#689f38,stroke-width:2px,font-size:14px
-    classDef content fill:#fff9c4,stroke:#fdd835,stroke-width:2px,font-size:14px
-    classDef delivery fill:#ffe0b2,stroke:#f57c00,stroke-width:2px,font-size:14px
+    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef preproc fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    classDef vision fill:#90caf9,stroke:#1e88e5,stroke-width:2px
+    classDef action fill:#c8e6c9,stroke:#43a047,stroke-width:2px
+    classDef event fill:#a5d6a7,stroke:#388e3c,stroke-width:2px
+    classDef metrics fill:#dcedc8,stroke:#689f38,stroke-width:2px
+    classDef content fill:#fff9c4,stroke:#fdd835,stroke-width:2px
+    classDef delivery fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
 
     class Video input
     class PreProc preproc
