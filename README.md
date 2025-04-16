@@ -430,7 +430,8 @@ flowchart LR
 
 ## 기술 상세 플로우
 
-```mermaidflowchart TD
+```mermaid
+flowchart TD
     %% Input Data
     Video[풋살 경기 영상<br>Veo + GoPro] --> PreProc[영상 전처리<br>프레임 추출 & 동기화]
 
