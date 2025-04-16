@@ -26,21 +26,42 @@
 
 ### 1️⃣ 경기 촬영 단계
 - **스마트 카메라 시스템**이 경기장 전체를 커버
-  - Veo Cam 3: 180° 메인 카메라 (AI 자동 트래킹)
+  - Ptzoptic 4k move: 메인 카메라 (AI 자동 트래킹)
   - GoPro x2: 골대 후방 및 사이드 앵글 (역동적 장면 캡처)
 - **엣지 컴퓨팅 기술**로 현장에서 1차 처리
   - 영상 압축 및 실시간 스트리밍
   - 네트워크 불안정 시 자동 버퍼링 및 동기화
 
-### 2️⃣ 클라우드 전송 단계
+### 2️⃣ 클라우드 전송 및 트래킹 단계
 - **안전한 스트리밍 프로토콜**로 AWS 클라우드로 전송
 - **멀티 소스 트랜스코딩**으로 다양한 각도 영상 동기화
 - **고성능 GPU 서버**에서 실시간 처리 준비
+  
+- **실시간 AI 트래킹 파이프라인**
+  - YOLOv8 객체 감지: 선수와 공을 30fps로 실시간 감지
+  - DeepSORT 추적 알고리즘: 선수 ID 유지하며 지속 추적
+  - 중요도 맵 생성: 공(50%), 주변 선수(30%), 활동 영역(20%) 가중치
+- **지능형 PTZ 카메라 제어**
+  - Kalman 필터: 공/선수 미래 위치 예측으로 지연시간 극복
+  - 스무딩 알고리즘: 부드러운 카메라 움직임 보장
+  - 상황 인식 줌 제어: 상황별 최적 앵글 자동 선택
+    * 빠른 공격 전환: 넓은 앵글로 전체 조망
+    * 골 찬스: 타이트한 줌으로 액션 강조
+    * 코너킥/세트피스: 전술적 배치 포착 위한 적절한 줌
+- **다중 경기장 동시 관리**
+  - 경기장별 독립 인스턴스로 안정적 서비스
+  - 자동 확장 시스템으로 동시 경기 증가에도 원활한 운영
+  - 중앙 모니터링으로 모든 경기장 상태 실시간 관리
 
 ### 3️⃣ AI 분석 단계
+- **컴퓨터 비전 기술**로 선수와 공 추적
+  - 트래킹 시스템과 연동된 정밀한 위치 데이터 활용
+  - 공간 매핑: 2D 화면 좌표를 실제 필드 좌표로 변환
+  - 선수별 움직임 패턴 및 히트맵 생성
 - **3D CNN + LSTM 기술**로 행동 및 이벤트 인식
   - 3D CNN: 영상의 공간적 특징 추출 (누가, 어디서, 무엇을)
   - LSTM: 시간적 컨텍스트 분석 (언제, 어떤 순서로, 얼마나 중요한지)
+  - 행동 분류: 패스, 슛, 드리블, 태클 등 자동 인식
 - **컴퓨터 비전 기술**로 선수와 공 추적
   - 선수별 움직임 패턴 분석
   - 실시간 위치 및 속도 측정
@@ -100,7 +121,7 @@
 ### 예약부터 분석까지
 1. **앱에서 풋살장 예약** - 날짜/시간 선택 및 팀원 등록
 2. **경기 진행** - 설치된 카메라가 자동으로 녹화 시작
-3. **실시간 알림** - 골 등 중요 이벤트 발생 시 앱으로 즉시 알림
+3. **실시간 알림 및 분석** - 하프타임에 주요 통계 및 1차 분석 제공 및 골 등 중요 이벤트 발생 시 앱으로 알림
 4. **경기 후 분석** - 경기 종료 후 30분 내 기본 하이라이트 제공
 5. **상세 분석** - 1시간 내 개인 및 팀 상세 분석 데이터 제공
 
@@ -115,14 +136,15 @@
 
 ### 사용자 가치
 - **객관적 성장 피드백**: "느낌"이 아닌 데이터 기반 피드백
-- **시간 절약**: 2시간 경기에서 핵심 장면만 3분으로 압축
+- **시간 절약**: 2시간 경기에서 핵심 장면만 압축
 - **모티베이션 증가**: 자신의 활약 장면 확인으로 동기부여
 - **팀 전술 이해**: 전체 경기 흐름과 팀 전술 파악 용이
 
 ### 기술적 차별점
 - **풋살 특화 AI**: 11인제 축구가 아닌 풋살에 최적화된 분석
 - **멀티모달 분석**: 영상+오디오 통합 분석으로 정확도 향상
-- **엣지-클라우드 하이브리드**: 현장 처리와 클라우드 분석 결합으로 안정성 확보
+- **지능형 PTZ 트래킹**: 클라우드 AI와 PTZ 카메라의 결합으로 최적 촬영
+- **엣지-클라우드 하이브리드**: 현장 처리와 클라우드 분석 결합으로 안정성 및 확장성 확보
 - **개인화 알고리즘**: 사용자 피드백 기반 지속적 개선
 
 ### 비즈니스 모델  ->수정필요
@@ -233,15 +255,16 @@ flowchart TD
     %% 메인 섹션 - 데이터 수집
     subgraph CAPTURE["1️⃣ 경기 데이터 수집"]
         direction TB
-        V[Veo Cam 3<br>180° 메인 카메라] --> |자동 트래킹| EDGE
-        G1[GoPro Hero 13<br>골대 후방 각도] --> EDGE
-        G2[GoPro Hero 13<br>사이드 각도] --> EDGE
+        P[PTZOptics 4K Move<br>메인 카메라] --> |RTSP/WebRTC| EDGE
+        G1[GoPro Hero 13<br>골대 후방 각도] --> |RTMP| EDGE
+        G2[GoPro Hero 13<br>사이드 각도] --> |RTMP| EDGE
         
         subgraph EDGE["엣지 컴퓨팅 (현장 처리)"]
             EP[영상 전처리<br>압축 및 동기화] --> BF[스트리밍 버퍼]
-            BF --> |안정적 네트워크| ST[RTMP/HLS 스트리밍]
+            BF --> |안정적 네트워크| ST[저지연 스트리밍]
             BF --> |네트워크 불안정| LS[로컬 저장<br>및 재전송 메커니즘]
             LS --> |네트워크 복구 후| ST
+            PTZ_CTRL[PTZ 제어 수신기] --> |VISCA over IP| P
         end
     end
 
@@ -256,14 +279,22 @@ flowchart TD
             EC2[EC2 g4dn/g5<br>GPU 인스턴스] --> |실시간 처리| ECS[ECS/EKS<br>컨테이너 오케스트레이션]
             EC2 --> |배치 처리| BATCH[AWS Batch<br>대규모 병렬 처리]
         end
+
+        subgraph TRACKING["클라우드 트래킹 시스템"]
+            RT[프레임 처리<br>Fargate] --> OD[객체 감지<br>YOLOv8]
+            OD --> TR[객체 추적<br>DeepSORT]
+            TR --> ROI[관심 영역 계산]
+            ROI --> PTZ_CMD[PTZ 명령 생성]
+            PTZ_CMD --> PTZ_OPT[제어 최적화<br>스무딩 알고리즘]
+        end
     end
 
     %% AI 분석 파이프라인
     subgraph AI["3️⃣ AI 분석 파이프라인"]
         direction TB
         subgraph CV["컴퓨터 비전 모듈"]
-            OD[객체 감지<br>YOLOv8] --> TR[객체 추적<br>ByteTrack/DeepSORT]
-            TR --> |선수/공 위치 데이터| CM[코트 매핑<br>호모그래피 변환]
+            OBD[객체 감지<br>YOLOv8] --> TRK[객체 추적<br>ByteTrack/DeepSORT]
+            TRK --> |선수/공 위치 데이터| CM[코트 매핑<br>호모그래피 변환]
         end
         
         subgraph ACT["행동 인식 모듈"]
@@ -316,11 +347,11 @@ flowchart TD
     %% 데이터 저장 및 API
     subgraph DB["데이터 저장 및 API"]
         direction TB
-        DYNAMO[DynamoDB<br>이벤트/메타데이터] --> API
-        RDS[RDS PostgreSQL<br>구조화된 통계] --> API
+        DYNAMO[DynamoDB<br>이벤트/메타데이터] --> API_GW
+        RDS[RDS PostgreSQL<br>구조화된 통계] --> API_GW
         S3C --> CDN[CloudFront<br>CDN]
         
-        subgraph API["API 레이어"]
+        subgraph API_GW["API 레이어"]
             APIG[API Gateway<br>REST API] --> |데이터 요청/응답| APP
             APPS[AppSync<br>실시간 GraphQL] --> |실시간 업데이트| APP
             CDN --> |미디어 콘텐츠| APP
@@ -341,44 +372,56 @@ flowchart TD
     end
 
     %% 시스템 간 연결
-    CAPTURE --> |실시간 스트리밍| KVS
-    EDGE --> |로컬 처리 데이터| KVS
+    ST --> |저지연 스트리밍| KVS
+    PTZ_OPT --> |PTZ 제어 명령| PTZ_CTRL
     CLOUD --> |처리된 영상| AI
     AI --> |분석 결과| CONTENT
     AI --> |계산된 지표| DB
     CONTENT --> |생성된 콘텐츠| DB
     DB --> |데이터 및 콘텐츠| USER
+    TRACKING --> |트래킹 데이터| AI
 
+    %% 확장성 관리
+    subgraph SCALE["확장성 관리"]
+        K8S[Kubernetes<br>클러스터] --> |부하 분산| PODS[경기장별<br>전용 Pod]
+        CW[CloudWatch<br>모니터링] --> |성능/지연시간| AS[Auto Scaling]
+    end
+    
+    TRACKING --> SCALE
+    
     %% 피드백 루프
     USER --> |사용자 피드백| AI
     
-    %% 스타일링 (진한 배경, 흰색 텍스트, 굵은 외곽선)
-    classDef camera fill:#B71C1C,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef edge fill:#424242,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef cloud fill:#0D47A1,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef ai fill:#4A148C,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef vision fill:#6A1B9A,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef action fill:#283593,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef event fill:#1565C0,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef metric fill:#0277BD,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef content fill:#2E7D32,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef storage fill:#00695C,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef api fill:#F9A825,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef app fill:#EF6C00,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef user fill:#E64A19,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
+    %% 스타일링: 모든 클래스에 어두운 배경과 흰색 텍스트 적용
+    classDef camera fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef edge fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef cloud fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef tracking fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef vision fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef action fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef event fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef metric fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef content fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef storage fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef api fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef app fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef user fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef scale fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
     
-    class V,G1,G2 camera;
-    class EDGE,EP,BF,ST,LS edge;
+    class P,G1,G2 camera;
+    class EDGE,EP,BF,ST,LS,PTZ_CTRL edge;
     class CLOUD,KVS,ML,COMPUTE,EC2,ECS,BATCH cloud;
-    class OD,TR,CM vision;
-    class C3D,LSTM,POSE,ACTION action;
-    class MULTI,SCORE,RULE,HILIGHT event;
-    class MOVE,PLAYER,POS,STATS,TEAM metric;
-    class CLIP,PERS,TEAM_H,GAME_H,VIZ,HEAT,PASS_N,PERF content;
+    class TRACKING,RT,OD,TR,ROI,PTZ_CMD,PTZ_OPT tracking;
+    class CV,OBD,TRK,CM vision;
+    class ACT,C3D,LSTM,POSE,ACTION action;
+    class EVENT,MULTI,RULE,SCORE,HILIGHT event;
+    class METRIC,MOVE,POS,PLAYER,TEAM,STATS metric;
+    class CONTENT,CLIP,PERS,TEAM_H,GAME_H,VIZ,HEAT,PASS_N,PERF content;
     class S3R,S3C,DYNAMO,RDS storage;
-    class APIG,APPS,CDN api;
+    class API_GW,APIG,APPS,CDN api;
     class APP,PHD,TD,GD app;
     class SOCIAL,IMPROVE,LEAGUE,ARCHIVE user;
+    class SCALE,K8S,PODS,CW,AS scale;
 ```
 
 
@@ -387,17 +430,20 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    
     %% Main flow
-    
-    A[카메라 시스템<br>Veo + GoPro] --> B[영상 스트리밍<br>엣지 컴퓨팅]
+    A[PTZOptics 4K Move<br>+ GoPro 카메라] --> B[영상 스트리밍<br>엣지 컴퓨팅]
     B --> C[AWS 클라우드<br>영상 처리]
-    C --> D[AI 분석 엔진]
+    
+    %% New tracking system
+    C --> D1[클라우드 트래킹<br>시스템]
+    D1 --> |PTZ 제어 명령| A
     
     %% AI analysis branches
-    D --> E1[컴퓨터 비전<br>선수/공 추적]
-    D --> E2[3D CNN + LSTM<br>행동 인식]
-    D --> E3[이벤트 감지<br>멀티모달 분석]
+    C --> D2[AI 분석 엔진]
+    
+    D2 --> E1[컴퓨터 비전<br>선수/공 추적]
+    D2 --> E2[3D CNN + LSTM<br>행동 인식]
+    D2 --> E3[이벤트 감지<br>멀티모달 분석]
     
     %% Outputs from AI
     E1 --> F1[지표 생성]
@@ -412,100 +458,131 @@ flowchart LR
     G2 --> H
     
     %% Feedback loop
-    H --> |피드백 루프|D
+    H --> |피드백 루프| D2
     
-    %% Styling (가독성 향상을 위한 진한 배경, 흰색 텍스트, 외곽선)
-    classDef input fill:#D32F2F,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef process fill:#1976D2,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef aiAnalysis fill:#388E3C,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef output fill:#F57F17,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
-    classDef delivery fill:#4527A0,stroke:#fff,stroke-width:2px, color:#fff, font-weight:bold;
+    %% Styling with dark background and white text
+    classDef input    fill:#424242,stroke:#c62828,stroke-width:2px,color:#fff;
+    classDef process  fill:#424242,stroke:#1976d2,stroke-width:2px,color:#fff;
+    classDef tracking fill:#424242,stroke:#4527a0,stroke-width:2px,color:#fff;
+    classDef aiAnalysis fill:#424242,stroke:#388e3c,stroke-width:2px,color:#fff;
+    classDef output   fill:#424242,stroke:#fbc02d,stroke-width:2px,color:#fff;
+    classDef delivery fill:#424242,stroke:#4527a0,stroke-width:2px,color:#fff;
     
-    class A,B input
-    class C,D process
-    class E1,E2,E3 aiAnalysis
-    class F1,F2 output
-    class G1,G2,H delivery
+    class A,B input;
+    class C process;
+    class D1 tracking;
+    class D2,E1,E2,E3 aiAnalysis;
+    class F1,F2 output;
+    class G1,G2,H delivery;
 ```
 
 ## 기술 상세 플로우
 
 ```mermaid
 flowchart TD
-  %% Input data
-  Video[풋살 경기 영상<br>Veo + GoPro] --> PreProc[영상 전처리<br>프레임 추출 & 동기화]
-
-  %% Computer Vision Pipeline
-  PreProc --> Detection[객체 감지<br>YOLOv8]
-  Detection --> Tracking[객체 추적<br>ByteTrack]
-  Tracking --> Mapping[공간 매핑<br>호모그래피 변환]
-
-  %% Action Recognition
-  subgraph ActionRecog["행동 인식 파이프라인"]
-    CNN["3D CNN (I3D)<br>시공간적 특징 추출"] --> BiLSTM["Bi-directional LSTM<br>시간적 컨텍스트 모델링"]
-    BiLSTM --> ActionClass["행동 분류기<br>패스/슛/태클/드리블 등 분류"]
-  end
-
-  %% Event Detection
-  subgraph EventDetect["이벤트 감지 시스템"]
-    Multi["멀티모달 분석기<br>영상 + 오디오"] --> EventClass["이벤트 분류기<br>골/위험찬스/좋은플레이"]
-    EventClass --> Scoring["중요도 점수화<br>알고리즘"]
-    Scoring --> Threshold["임계값 필터링<br>(6점 이상 선정)"]
-  end
-
-  %% Metrics Calculation
-  subgraph MetricsCalc["지표 계산 시스템"]
-    MovementA["움직임 분석<br>거리/속도/가속도"] --> PlayerMetrics["개인 지표 계산"]
-    ActionMetrics["기술 지표 분석<br>패스/슛/수비 성공률"] --> PlayerMetrics
-    PositionA["포지셔닝 분석<br>히트맵/점유공간"] --> PlayerMetrics
-
-    PlayerMetrics --> IndividualStats["개인 성과 지표"]
-    PlayerMetrics --> TeamMetrics["팀 지표 집계"]
-    TeamMetrics --> TeamStats["팀 성과 지표"]
-  end
-
-  %% Content Generation
-  subgraph ContentGen["콘텐츠 생성 시스템"]
-    Threshold --> ClipGen["클립 생성기<br>전후 컨텍스트 포함"]
-    ClipGen --> IndHighlights["개인별 하이라이트"]
-    ClipGen --> TeamHighlights["팀 하이라이트"]
-    ClipGen --> FullHighlights["전체 경기 하이라이트"]
-
-    IndividualStats --> DataViz["데이터 시각화"]
-    TeamStats --> DataViz
-    DataViz --> Dashboard["성과 대시보드"]
-  end
-
-  %% Pipeline Connections
-  Mapping --> ActionRecog
-  Mapping --> MetricsCalc
-  Tracking --> EventDetect
-  ActionClass --> EventClass
-  ActionClass --> ActionMetrics
-
-  %% Output and Delivery
-  IndHighlights --> DeliverySystem["콘텐츠 전달 시스템<br>CDN & 모바일 앱"]
-  TeamHighlights --> DeliverySystem
-  FullHighlights --> DeliverySystem
-  Dashboard --> DeliverySystem
-
-  %% Styling (진한 배경, 흰색 텍스트)
-  classDef input fill:#1565c0,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef preproc fill:#1976d2,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef vision fill:#0d47a1,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef action fill:#2e7d32,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef event fill:#0277bd,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef metrics fill:#558b2f,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef content fill:#e65100,stroke:#fff,stroke-width:2px, color:#fff;
-  classDef delivery fill:#424242,stroke:#fff,stroke-width:2px, color:#fff;
-
-  class Video input;
-  class PreProc preproc;
-  class Detection,Tracking,Mapping vision;
-  class CNN,BiLSTM,ActionClass action;
-  class Multi,EventClass,Scoring,Threshold event;
-  class MovementA,ActionMetrics,PositionA,PlayerMetrics,TeamMetrics,IndividualStats,TeamStats metrics;
-  class ClipGen,IndHighlights,TeamHighlights,FullHighlights,DataViz,Dashboard content;
-  class DeliverySystem delivery;
+    %% Input data
+    Video[풋살 경기 영상<br>PTZOptics + GoPro] --> PreProc[영상 전처리<br>프레임 추출 & 동기화]
+    
+    %% New Tracking Pipeline
+    subgraph TrackingSystem["PTZ 카메라 트래킹 시스템"]
+        PreProc --> |저지연 스트림| YOLO["YOLOv8<br>선수/공/심판 감지"]
+        YOLO --> DST["DeepSORT<br>객체 ID 유지 추적"]
+        DST --> ROI["관심 영역 결정<br>중요도 맵 생성"]
+        ROI --> Kalman["Kalman 필터<br>위치 예측"]
+        Kalman --> PTZ["PTZ 파라미터 계산<br>Pan/Tilt/Zoom 제어값"]
+        PTZ --> Smooth["스무딩 알고리즘<br>급격한 움직임 방지"]
+        Smooth --> VISCA["VISCA 명령 생성<br>카메라 제어 전송"]
+    end
+    
+    %% Computer Vision Pipeline
+    PreProc --> Detection["객체 감지<br>YOLOv8"]
+    Detection --> Tracking["객체 추적<br>ByteTrack"]
+    Tracking --> Mapping["공간 매핑<br>호모그래피 변환"]
+    
+    %% Action Recognition
+    subgraph ActionRecog["행동 인식 파이프라인"]
+        CNN["3D CNN (I3D)<br>시공간적 특징 추출"] --> BiLSTM["Bi-directional LSTM<br>시간적 컨텍스트 모델링"]
+        BiLSTM --> ActionClass["행동 분류기<br>패스/슛/태클/드리블 등 분류"]
+    end
+    
+    %% Event Detection
+    subgraph EventDetect["이벤트 감지 시스템"]
+        Multi["멀티모달 분석기<br>영상 + 오디오"] --> EventClass["이벤트 분류기<br>골/위험찬스/좋은플레이"]
+        EventClass --> Scoring["중요도 점수화<br>알고리즘"]
+        Scoring --> Threshold["임계값 필터링<br>(6점 이상 선정)"]
+    end
+    
+    %% Metrics Calculation
+    subgraph MetricsCalc["지표 계산 시스템"]
+        MovementA["움직임 분석<br>거리/속도/가속도"] --> PlayerMetrics["개인 지표 계산"]
+        ActionMetrics["기술 지표 분석<br>패스/슛/수비 성공률"] --> PlayerMetrics
+        PositionA["포지셔닝 분석<br>히트맵/점유공간"] --> PlayerMetrics
+        
+        PlayerMetrics --> IndividualStats["개인 성과 지표"]
+        PlayerMetrics --> TeamMetrics["팀 지표 집계"]
+        TeamMetrics --> TeamStats["팀 성과 지표"]
+    end
+    
+    %% Content Generation
+    subgraph ContentGen["콘텐츠 생성 시스템"]
+        Threshold --> ClipGen["클립 생성기<br>전후 컨텍스트 포함"]
+        ClipGen --> IndHighlights["개인별 하이라이트"]
+        ClipGen --> TeamHighlights["팀 하이라이트"]
+        ClipGen --> FullHighlights["전체 경기 하이라이트"]
+        
+        IndividualStats --> DataViz["데이터 시각화"]
+        TeamStats --> DataViz
+        DataViz --> Dashboard["성과 대시보드"]
+    end
+    
+    %% Multi-field scaling
+    subgraph Scaling["다중 경기장 확장 시스템"]
+        LoadBalancer["로드 밸런서<br>ELB"] --> Track1["경기장 A<br>트래킹 인스턴스"]
+        LoadBalancer --> Track2["경기장 B<br>트래킹 인스턴스"]
+        LoadBalancer --> Track3["경기장 C<br>트래킹 인스턴스"]
+        
+        Monitor["성능 모니터링<br>CloudWatch"] --> Autoscale["오토스케일링<br>자원 할당"]
+    end
+    
+    %% Pipeline Connections
+    Mapping --> ActionRecog
+    Mapping --> MetricsCalc
+    Tracking --> EventDetect
+    ActionClass --> EventClass
+    ActionClass --> ActionMetrics
+    DST --> Tracking
+    
+    %% Output and Delivery
+    IndHighlights --> DeliverySystem["콘텐츠 전달 시스템<br>CDN & 모바일 앱"]
+    TeamHighlights --> DeliverySystem
+    FullHighlights --> DeliverySystem
+    Dashboard --> DeliverySystem
+    
+    %% Feedback connection
+    VISCA --> |제어 명령| Video
+    
+    %% 스타일링: 모든 클래스에 어두운 배경과 흰색 텍스트 적용
+    classDef input fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef preproc fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef vision fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef tracking fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef action fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef event fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef metrics fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef content fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef output fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef delivery fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef scaling fill:#424242,stroke:#fff,stroke-width:2px,color:#fff;
+    
+    class Video input;
+    class PreProc preproc;
+    class Detection,Tracking,Mapping vision;
+    class YOLO,DST,ROI,Kalman,PTZ,Smooth,VISCA tracking;
+    class CNN,BiLSTM,ActionClass action;
+    class Multi,EventClass,Scoring,Threshold event;
+    class MovementA,ActionMetrics,PositionA,PlayerMetrics,TeamMetrics,IndividualStats,TeamStats metrics;
+    class ClipGen,IndHighlights,TeamHighlights,FullHighlights,DataViz,Dashboard content;
+    class DeliverySystem delivery;
+    class LoadBalancer,Track1,Track2,Track3,Monitor,Autoscale scaling;
 ```
 
