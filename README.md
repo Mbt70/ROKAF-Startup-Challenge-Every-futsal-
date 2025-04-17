@@ -175,11 +175,12 @@
 flowchart TD
     %% 메인 섹션
     subgraph CS["📹 데이터 수집 시스템"]
-        VC[Veo Cam 3<br>메인 카메라] --> ES
+        PTZ[PTZOptics 4K Move<br>메인 카메라] --> ES
         GP[GoPro x2<br>보조 카메라] --> ES
         ES[엣지 서버] --> |영상 압축 & 버퍼링|KV
         ES --> |네트워크 중단 시|LS[로컬 스토리지]
         LS --> |재연결 후 동기화|KV
+        PTZ_C[PTZ 제어 수신기] --> |카메라 제어|PTZ
     end
 
     subgraph CL["☁️ AWS 클라우드 인프라"]
@@ -188,7 +189,10 @@ flowchart TD
         ML --> |영상 처리|EC2
         
         subgraph AIP["🧠 AI 분석 파이프라인"]
-            EC2[EC2/ECS<br>GPU 인스턴스] --> OD[객체 감지 & 추적<br>YOLOv8/ByteTrack]
+            EC2[EC2/ECS<br>GPU 인스턴스] --> TR[트래킹 시스템<br>YOLOv8/DeepSORT]
+            TR --> |PTZ 제어 명령|PTZ_C
+            
+            EC2 --> OD[객체 감지 & 추적<br>YOLOv8/ByteTrack]
             OD --> |선수/공 위치 데이터|AR[행동 인식<br>3D CNN + LSTM]
             AR --> |행동 분류|ED[이벤트 감지<br>멀티모달 분석]
             ED --> |중요도 점수화|HL[하이라이트 선정]
@@ -231,18 +235,20 @@ flowchart TD
     classDef edge fill:#757575,stroke:#fff,stroke-width:1px, color:#fff
     classDef cloud fill:#1976D2,stroke:#fff,stroke-width:1px, color:#fff
     classDef ai fill:#7B1FA2,stroke:#fff,stroke-width:1px, color:#fff
+    classDef track fill:#9C27B0,stroke:#fff,stroke-width:1px, color:#fff
     classDef storage fill:#388E3C,stroke:#fff,stroke-width:1px, color:#fff
     classDef content fill:#FBC02D,stroke:#fff,stroke-width:1px, color:#fff
     classDef app fill:#F57C00,stroke:#fff,stroke-width:1px, color:#fff
     classDef delivery fill:#E64A19,stroke:#fff,stroke-width:1px, color:#fff
     
-    class VC,GP camera
-    class ES,LS edge
+    class PTZ,GP camera
+    class ES,LS,PTZ_C edge
     class KV,ML,EC2,AG,CF cloud
+    class TR track
     class OD,AR,ED,HL,MA,PM ai
     class S3R,S3C,DB storage
     class MC content
-    class AP,PH,TA,MD appapp
+    class AP,PH,TA,MD app
     class SM,HP,PT delivery
 ```
 
@@ -252,176 +258,171 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    %% 메인 섹션 - 데이터 수집
-    subgraph CAPTURE["1️⃣ 경기 데이터 수집"]
-        direction TB
-        P[PTZOptics 4K Move<br>메인 카메라] --> |RTSP/WebRTC| EDGE
-        G1[GoPro Hero 13<br>골대 후방 각도] --> |RTMP| EDGE
-        G2[GoPro Hero 13<br>사이드 각도] --> |RTMP| EDGE
-        
-        subgraph EDGE["엣지 컴퓨팅 (현장 처리)"]
-            EP[영상 전처리<br>압축 및 동기화] --> BF[스트리밍 버퍼]
-            BF --> |안정적 네트워크| ST[저지연 스트리밍]
-            BF --> |네트워크 불안정| LS[로컬 저장<br>및 재전송 메커니즘]
-            LS --> |네트워크 복구 후| ST
-            PTZ_CTRL[PTZ 제어 수신기] --> |VISCA over IP| P
-        end
+  %% 1️⃣ 경기 데이터 수집
+  subgraph CAPTURE["1️⃣ 경기 데이터 수집"]
+    direction TB
+    P[PTZOptics 4K Move<br>메인 카메라] -->|RTSP/WebRTC| EDGE
+    G1[GoPro Hero 13<br>골대 후방 각도] -->|RTMP| EDGE
+    G2[GoPro Hero 13<br>사이드 각도] -->|RTMP| EDGE
+  end
+
+  %% 2️⃣ 엣지 컴퓨팅 (현장 처리)
+  subgraph EDGE["2️⃣ 엣지 컴퓨팅"]
+    direction TB
+    EP[영상 전처리<br>압축 & 동기화] --> BF[스트리밍 버퍼]
+    BF -->|안정 네트워크| ST[저지연 스트리밍]
+    BF -->|불안정 네트워크| LS[로컬 저장 & 재전송]
+    LS -->|복구 시| ST
+    PTZ_CTRL[PTZ 제어 수신기] -->|VISCA over IP| P
+  end
+
+  %% 3️⃣ AWS 클라우드 처리
+  subgraph CLOUD["3️⃣ AWS 클라우드 처리"]
+    direction TB
+    KVS[Kinesis Video<br>Streams] -->|실시간 수신| ML[MediaLive<br>트랜스코딩]
+    ML -->|원본 저장| S3R[S3 Raw Storage]
+    ML -->|분석 스트림| COMPUTE
+
+    subgraph COMPUTE["컴퓨팅 리소스"]
+      direction TB
+      EC2[EC2 g4dn/g5<br>GPU 인스턴스] -->|실시간 처리| ECS[ECS/EKS<br>컨테이너]
+      EC2 -->|배치 처리| BATCH[AWS Batch<br>병렬 처리]
     end
 
-    %% 클라우드 처리
-    subgraph CLOUD["2️⃣ AWS 클라우드 처리"]
-        direction TB
-        KVS[Kinesis Video<br>Streams] --> |실시간 수신| ML[MediaLive<br>트랜스코딩]
-        ML --> |포맷 변환| S3R[S3 Raw Storage<br>원본 영상]
-        ML --> |분석용 스트림| COMPUTE
-        
-        subgraph COMPUTE["컴퓨팅 리소스"]
-            EC2[EC2 g4dn/g5<br>GPU 인스턴스] --> |실시간 처리| ECS[ECS/EKS<br>컨테이너 오케스트레이션]
-            EC2 --> |배치 처리| BATCH[AWS Batch<br>대규모 병렬 처리]
-        end
-
-        subgraph TRACKING["클라우드 트래킹 시스템"]
-            RT[프레임 처리<br>Fargate] --> OD[객체 감지<br>YOLOv8]
-            OD --> TR[객체 추적<br>DeepSORT]
-            TR --> ROI[관심 영역 계산]
-            ROI --> PTZ_CMD[PTZ 명령 생성]
-            PTZ_CMD --> PTZ_OPT[제어 최적화<br>스무딩 알고리즘]
-        end
+    subgraph TRACKING["클라우드 트래킹 시스템"]
+      direction TB
+      RT[프레임 처리<br>Fargate] --> OD[객체 감지<br>YOLOv8]
+      OD --> TR[추적<br>DeepSORT]
+      TR --> ROI[관심 영역 계산]
+      ROI --> PTZ_CMD[PTZ 명령 생성]
+      PTZ_CMD --> PTZ_OPT[스무딩 알고리즘]
     end
+  end
 
-    %% AI 분석 파이프라인
-    subgraph AI["3️⃣ AI 분석 파이프라인"]
-        direction TB
-        subgraph CV["컴퓨터 비전 모듈"]
-            OBD[객체 감지<br>YOLOv8] --> TRK[객체 추적<br>ByteTrack/DeepSORT]
-            TRK --> |선수/공 위치 데이터| CM[코트 매핑<br>호모그래피 변환]
-        end
-        
-        subgraph ACT["행동 인식 모듈"]
-            C3D[3D CNN<br>I3D 아키텍처] --> |시공간 특징| LSTM[Bi-directional LSTM<br>시퀀스 모델링]
-            POSE[포즈 추정<br>OpenPose] --> |자세 분석| ACTION[행동 분류기<br>패스/슛/태클/드리블]
-        end
-        
-        subgraph EVENT["이벤트 감지 모듈"]
-            MULTI[멀티모달 분석<br>영상+오디오] --> |이벤트 감지| SCORE[중요도 점수화<br>알고리즘]
-            RULE[규칙 기반 시스템<br>골/위험 찬스] --> SCORE
-            SCORE --> |임계값 필터링| HILIGHT[하이라이트 후보<br>선정]
-        end
-        
-        subgraph METRIC["지표 계산 모듈"]
-            MOVE[움직임 분석<br>거리/속도/가속] --> |물리적 지표| PLAYER[선수 성과 모델]
-            ACTION --> |기술적 지표| PLAYER
-            POS[포지셔닝 분석<br>공간 점유] --> |전술적 지표| PLAYER
-            PLAYER --> |개인 지표| STATS[통계 엔진]
-            PLAYER --> |팀 집계| TEAM[팀 성과 모델]
-            TEAM --> |팀 지표| STATS
-        end
-        
-        CV --> ACT
-        CV --> EVENT
-        CV --> METRIC
-        ACT --> EVENT
+  %% 4️⃣ AI 분석 파이프라인
+  subgraph AI["4️⃣ AI 분석 파이프라인"]
+    direction TB
+    subgraph CV["컴퓨터 비전 모듈"]
+      direction TB
+      OBD[감지<br>YOLOv8] --> TR2[추적<br>ByteTrack]
+      TR2 --> CM[코트 매핑<br>호모그래피]
     end
-
-    %% 콘텐츠 생성
-    subgraph CONTENT["4️⃣ 콘텐츠 생성"]
-        direction TB
-        HILIGHT --> |중요 장면 선택| CLIP[클립 생성기<br>AWS MediaConvert]
-        CLIP --> |개인별 하이라이트| PERS[개인 하이라이트<br>패키지]
-        CLIP --> |팀 하이라이트| TEAM_H[팀 하이라이트<br>패키지]
-        CLIP --> |전체 경기 하이라이트| GAME_H[경기 하이라이트<br>패키지]
-        
-        STATS --> |데이터 가공| VIZ[데이터 시각화<br>엔진]
-        VIZ --> |히트맵| HEAT[히트맵<br>시각화]
-        VIZ --> |패스 네트워크| PASS_N[패스 네트워크<br>다이어그램]
-        VIZ --> |성과 그래프| PERF[성과 지표<br>그래프]
-        
-        PERS --> S3C[S3 Content<br>가공 콘텐츠 저장]
-        TEAM_H --> S3C
-        GAME_H --> S3C
-        HEAT --> S3C
-        PASS_N --> S3C
-        PERF --> S3C
+    subgraph ACT["행동 인식 모듈"]
+      direction TB
+      C3D[3D CNN <br>시공간 특징] --> LSTM[Bi-LSTM<br>시퀀스 모델링]
+      LSTM --> ACTION[분류기<br>패스/슛/태클]
     end
-
-    %% 데이터 저장 및 API
-    subgraph DB["데이터 저장 및 API"]
-        direction TB
-        DYNAMO[DynamoDB<br>이벤트/메타데이터] --> API_GW
-        RDS[RDS PostgreSQL<br>구조화된 통계] --> API_GW
-        S3C --> CDN[CloudFront<br>CDN]
-        
-        subgraph API_GW["API 레이어"]
-            APIG[API Gateway<br>REST API] --> |데이터 요청/응답| APP
-            APPS[AppSync<br>실시간 GraphQL] --> |실시간 업데이트| APP
-            CDN --> |미디어 콘텐츠| APP
-        end
+    subgraph EVENT["이벤트 감지 모듈"]
+      direction TB
+      MULTI[멀티모달<br>영상+오디오] --> SCORE[점수화<br>알고리즘]
+      RULE[규칙 기반<br>감지] --> SCORE
+      SCORE --> HILIGHT[하이라이트 후보<br>선정]
     end
-
-    %% 최종 사용자 경험
-    subgraph USER["5️⃣ 사용자 경험"]
-        direction TB
-        APP[모바일 앱<br>웹 대시보드] --> |개인 데이터| PHD[개인 대시보드]
-        APP --> |팀 데이터| TD[팀 대시보드]
-        APP --> |경기 데이터| GD[경기 대시보드]
-        
-        PHD --> |공유| SOCIAL[소셜 미디어<br>공유]
-        PHD --> |개선점| IMPROVE[성장 분석<br>및 추천]
-        TD --> LEAGUE[리그/토너먼트<br>통계]
-        GD --> ARCHIVE[경기 아카이브]
+    subgraph METRIC["지표 계산 모듈"]
+      direction TB
+      MOVE[움직임 분석<br>거리/속도] --> PLAYER[선수 모델]
+      ACTION --> PLAYER
+      POS[포지셔닝<br>공간 점유] --> PLAYER
+      PLAYER --> IND[개인지표]
+      PLAYER --> TEAM[팀집계]
+      TEAM --> STATS[팀지표]
     end
+    CV --> ACT
+    CV --> EVENT
+    CV --> METRIC
+    ACT --> EVENT
+  end
 
-    %% 시스템 간 연결
-    ST --> |저지연 스트리밍| KVS
-    PTZ_OPT --> |PTZ 제어 명령| PTZ_CTRL
-    CLOUD --> |처리된 영상| AI
-    AI --> |분석 결과| CONTENT
-    AI --> |계산된 지표| DB
-    CONTENT --> |생성된 콘텐츠| DB
-    DB --> |데이터 및 콘텐츠| USER
-    TRACKING --> |트래킹 데이터| AI
+  %% 5️⃣ 콘텐츠 생성
+  subgraph CONTENT["5️⃣ 콘텐츠 생성"]
+    direction TB
+    HILIGHT --> CLIP[클립 생성기<br>MediaConvert]
+    CLIP --> IND_H[개인 하이라이트]
+    CLIP --> TEAM_H[팀 하이라이트]
+    CLIP --> FULL_H[전체 하이라이트]
+    IND --> VIZ[데이터 시각화]
+    STATS --> VIZ
+    VIZ --> DASH[대시보드]
+  end
 
-    %% 확장성 관리
-    subgraph SCALE["확장성 관리"]
-        K8S[Kubernetes<br>클러스터] --> |부하 분산| PODS[경기장별<br>전용 Pod]
-        CW[CloudWatch<br>모니터링] --> |성능/지연시간| AS[Auto Scaling]
+  %% 6️⃣ 저장 & API
+  subgraph DB["6️⃣ 데이터 저장 & API"]
+    direction TB
+    DYN[DynamoDB<br>메타데이터] --> API_GW
+    RDS[RDS PostgreSQL<br>통계 DB] --> API_GW
+    S3C[S3 콘텐츠<br>저장] --> CDN[CloudFront]
+    subgraph API_GW["API 레이어"]
+      direction TB
+      APIG[REST API Gateway] --> APP
+      APPS[AppSync<br>GraphQL] --> APP
+      CDN --> APP
     end
-    
-    TRACKING --> SCALE
-    
-    %% 피드백 루프
-    USER --> |사용자 피드백| AI
-    
-    %% 스타일링: 모든 클래스에 어두운 배경과 흰색 텍스트 적용
-    classDef camera fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef edge fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef cloud fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef tracking fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef vision fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef action fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef event fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef metric fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef content fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef storage fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef api fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef app fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef user fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef scale fill:#424242,stroke:#fff,stroke-width:1px,color:#fff;
-    
-    class P,G1,G2 camera;
-    class EDGE,EP,BF,ST,LS,PTZ_CTRL edge;
-    class CLOUD,KVS,ML,COMPUTE,EC2,ECS,BATCH cloud;
-    class TRACKING,RT,OD,TR,ROI,PTZ_CMD,PTZ_OPT tracking;
-    class CV,OBD,TRK,CM vision;
-    class ACT,C3D,LSTM,POSE,ACTION action;
-    class EVENT,MULTI,RULE,SCORE,HILIGHT event;
-    class METRIC,MOVE,POS,PLAYER,TEAM,STATS metric;
-    class CONTENT,CLIP,PERS,TEAM_H,GAME_H,VIZ,HEAT,PASS_N,PERF content;
-    class S3R,S3C,DYNAMO,RDS storage;
-    class API_GW,APIG,APPS,CDN api;
-    class APP,PHD,TD,GD app;
-    class SOCIAL,IMPROVE,LEAGUE,ARCHIVE user;
-    class SCALE,K8S,PODS,CW,AS scale;
+  end
+
+  %% 7️⃣ 사용자 경험
+  subgraph USER["7️⃣ 사용자 경험"]
+    direction TB
+    APP[앱 대시보드] -->|개인| PHD[개인 대시보드]
+    APP -->|팀| TD[팀 대시보드]
+    APP -->|경기| GD[경기 대시보드]
+    PHD --> SOCIAL[소셜 공유]
+    PHD --> RECO[추천/분석]
+    TD --> LEAGUE[리그 통계]
+    GD --> ARCH[아카이브]
+  end
+
+  %% 8️⃣ 확장성 & 모니터링
+  subgraph SCALE["8️⃣ 확장성 & 모니터링"]
+    direction TB
+    LB[로드밸런서<br>ELB] --> INST1[인스턴스 A]
+    LB --> INST2[인스턴스 B]
+    LB --> INST3[인스턴스 C]
+    CW[CloudWatch<br>모니터링] --> AS[오토스케일링]
+  end
+
+  %% 연결 & 피드백
+  EDGE --> ML
+  ST --> KVS
+  PTZ_OPT --> PTZ_CTRL
+  ML --> COMPUTE
+  COMPUTE --> TRACKING
+  TRACKING --> AI
+  AI --> CONTENT
+  CONTENT --> DB
+  API_GW --> USER
+  USER -->|피드백| AI
+
+  %% 스타일 정의
+  classDef capture fill:#2c3e50,stroke:#1b2838,stroke-width:2px,color:#fff;
+  classDef edge    fill:#16a085,stroke:#0f4c3a,stroke-width:2px,color:#fff;
+  classDef cloud   fill:#2980b9,stroke:#1c5980,stroke-width:2px,color:#fff;
+  classDef compute fill:#34495e,stroke:#1f2d3a,stroke-width:2px,color:#fff;
+  classDef track   fill:#8e44ad,stroke:#4a235a,stroke-width:2px,color:#fff;
+  classDef cv      fill:#27ae60,stroke:#1e8449,stroke-width:2px,color:#fff;
+  classDef act     fill:#d35400,stroke:#a84300,stroke-width:2px,color:#fff;
+  classDef event   fill:#c0392b,stroke:#7b241c,stroke-width:2px,color:#fff;
+  classDef metric  fill:#f39c12,stroke:#b9770e,stroke-width:2px,color:#fff;
+  classDef content fill:#7f8c8d,stroke:#606c76,stroke-width:2px,color:#fff;
+  classDef storage fill:#34495e,stroke:#1f2d3a,stroke-width:2px,color:#fff;
+  classDef api     fill:#2c3e50,stroke:#1b2838,stroke-width:2px,color:#fff;
+  classDef app     fill:#1abc9c,stroke:#148f77,stroke-width:2px,color:#fff;
+  classDef user    fill:#e74c3c,stroke:#993333,stroke-width:2px,color:#fff;
+  classDef scale   fill:#2d3436,stroke:#1b1f23,stroke-width:2px,color:#fff;
+
+  class P,G1,G2 capture;
+  class EP,BF,ST,LS,PTZ_CTRL edge;
+  class KVS,ML,S3R cloud;
+  class COMPUTE compute;
+  class RT,OD,TR,ROI,PTZ_CMD,PTZ_OPT track;
+  class OBD,TR2,CM cv;
+  class C3D,LSTM,ACTION act;
+  class MULTI,RULE,SCORE,HILIGHT event;
+  class MOVE,PLAYER,IND,TEAM,STATS metric;
+  class CLIP,IND_H,TEAM_H,FULL_H,VIZ,DASH content;
+  class DYN,RDS,APIG,APPS,S3C,CDN storage;
+  class APP,PHD,TD,GD app;
+  class SOCIAL,RECO,LEAGUE,ARCH user;
+  class LB,INST1,INST2,INST3,CW,AS scale;
 ```
 
 
